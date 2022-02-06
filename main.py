@@ -3,6 +3,15 @@ import math
 from PIL import Image, ImageDraw
 import random
 from pprint import pprint
+import requests
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+PINATA_JWT = os.getenv("PINATA_JWT")
+
+PINATA_BASE_URL="https://api.pinata.cloud"
 
 IMAGE_WIDTH = 631
 IMAGE_HEIGHT = 631
@@ -48,6 +57,9 @@ trait_generated_count = {
   },
 }
 
+"""
+generate character with their traits
+"""
 def generate_characters():
   trait_keys = trait_distribution.keys()
   characters = []
@@ -73,34 +85,59 @@ def generate_characters():
   return characters
 
 
-def create_bg(img, bg_color):
+"""
+generate character image based on character's traits
+@return image path
+"""
+def generate_character_image(character, i):
+  img = Image.new("RGB", (IMAGE_WIDTH, IMAGE_HEIGHT))
   bg = ImageDraw.Draw(img)
   bounding_box = [(0, 0), (IMAGE_WIDTH, IMAGE_HEIGHT)]
-  bg.rectangle(bounding_box, fill=bg_color, outline="black")
-  return img
+  bg.rectangle(bounding_box, fill=WHITE, outline="black")
+
+  img_char = Image.open("./images_in/character.png")
+  img.paste(img_char, (0, 0), img_char)
+
+  for trait in list(trait_distribution.keys()):
+    trait_var = character[trait]
+    trait_var_img_path = TRAIT_CONFIG[trait]["variations"][trait_var]["image"]
+    img_trait_var = Image.open(trait_var_img_path)
+    img.paste(img_trait_var, (0, 0), img_trait_var)
+
+  img_out_path = "./images_out/" + f"{i+1}"
+  trait_vars = [character[trait] for trait in list(trait_distribution.keys())] 
+  for trait_var in trait_vars:
+    img_out_path += f"_{trait_var}"
+  img_out_path += ".png"
+
+  img.save(img_out_path)
+
+  return img_out_path
+
+
+def upload_image_to_ipfs(img_path):
+  headers = {
+    "Accept": "application/json",
+    "Authorization": f"Bearer {PINATA_JWT}"
+  }
+  files = {"file": open(img_path, "rb")}
+  resp = requests.post(f"{PINATA_BASE_URL}/pinning/pinFileToIPFS", headers=headers, files=files)
+  return resp.json()["IpfsHash"]
+
+def generate_opensea_metadata():
+  pass
 
 def main():
   characters = generate_characters()
+  print(characters)
   for i, c in enumerate(characters):
-    img = Image.new("RGB", (IMAGE_WIDTH, IMAGE_HEIGHT))
-    img = create_bg(img, WHITE)
-
-    img_char = Image.open("./images_in/character.png")
-    img.paste(img_char, (0, 0), img_char)
-
-    for trait in list(trait_distribution.keys()):
-      trait_var = c[trait]
-      trait_var_img_path = TRAIT_CONFIG[trait]["variations"][trait_var]["image"]
-      img_trait_var = Image.open(trait_var_img_path)
-      img.paste(img_trait_var, (0, 0), img_trait_var)
-
-    img_out_path = "./images_out/" + f"{i+1}"
-    trait_vars = [c[trait] for trait in list(trait_distribution.keys())] 
-    for trait_var in trait_vars:
-      img_out_path += f"_{trait_var}"
-    img_out_path += ".png"
-
-    img.save(img_out_path)
+    img_out_path = generate_character_image(c, i)
+    ipfs_hash = upload_image_to_ipfs(img_out_path)
+    print(ipfs_hash)
+    # TODO:
+    # bikin metadata
+    # upload ke ipfs
+    # list metadata disimpen ke file
 
 if __name__ == "__main__":
   main()
