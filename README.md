@@ -9,12 +9,16 @@
 - [ ] Image Generator Script
   - [x] random generate by trait distribution 
   - [ ] add each trait based on layer config
-- [ ] Script: Upload to IPFS
-  - [ ] Upload to ipfs
-  - [ ] Opensea NFT Metadata:
-    - [ ] image: string // ipfs link
-    - [ ] attributes: [{"trait_type": string, "value": string}]
-    - [ ] Save to file
+- [x] Script: Upload to IPFS
+  - [x] Upload to ipfs
+  - [x] image: string // ipfs link
+  - [x] attributes: [{"trait_type": string, "value": string}]
+  - [x] Save to file
+- [ ] Create CLI program to run nft project generation end to end
+  - [ ] nft project generation per project
+
+# NOTES
+- same image, different name will have the same ipfs hash
 
 # Image Generation Trait Config
 The data structure for the config is a dictionary of `trait_config`.  
